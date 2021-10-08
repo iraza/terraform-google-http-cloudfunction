@@ -1,3 +1,4 @@
+
 resource "google_cloudfunctions_function" "functionHttp" {
   provider = google-beta
 
@@ -9,10 +10,9 @@ resource "google_cloudfunctions_function" "functionHttp" {
   source_archive_bucket = google_storage_bucket.bucket.name
   source_archive_object = google_storage_bucket_object.archive.name
   entry_point           = "${var.entry_point_class_name}"
-
   trigger_http = true
-
 }
+
 resource "google_storage_bucket" "bucket" {
   provider = google-beta
   name = "${var.service_name}-${var.function_name}-cloud-function-bucket"
@@ -20,20 +20,9 @@ resource "google_storage_bucket" "bucket" {
 
 resource "google_storage_bucket_object" "archive" {
   provider = google-beta
-
-  name   = "${var.service_name}-${var.function_name}.zip"
+  name   = "${var.service_name}-${var.function_name}-${filemd5(var.source_zip_file)}.zip"
   bucket = google_storage_bucket.bucket.name
   source = "${var.source_zip_file}"
-  depends_on = [null_resource.gradleBuild]
-}
-
-resource "null_resource" "gradleBuild" {
-  provisioner "local-exec" {
-    command = "gradle build"
-  }
-  triggers = {
-    always_run = "${timestamp()}"
-  }
 }
 
 
@@ -49,14 +38,12 @@ resource "google_cloudfunctions_function_iam_member" "invoker" {
 }
 
 resource "google_api_gateway_api" "api" {
-
   provider = google-beta
   api_id = var.api_id
   display_name = var.api_gateway_display_name
 }
 
 resource "google_api_gateway_api_config" "api_cfg" {
-
   provider = google-beta
   api = google_api_gateway_api.api.api_id
   api_config_id = var.api_config_id
